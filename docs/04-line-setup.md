@@ -43,6 +43,20 @@
 作業は **Cloudflare Pages → LINE → Cloudflare Workers → LINEに戻る** の順です。
 Worker のURLを LINE に登録する必要があるので、この順番でないと堂々巡りになります。
 
+### ⚠️ URLが2つあります。混同しやすいので先に整理します
+
+| | 正体 | 誰が使うか | 形 |
+|---|---|---|---|
+| **Pages のURL** | PWA（アプリ本体） | **人**がブラウザで開く | `https://mieru-xxx.pages.dev` |
+| **Workers のURL** | 通知の判断プログラム | **LINE**がイベントを送りつけてくる | `https://mieru-notifier-xxx.workers.dev` |
+
+- **Webhook URL 欄に入れるのは Workers のほう＋ `/webhook`** です。
+  Pages の URL を入れても LINE からのイベントは受け取れません。
+- `wrangler.toml` の `SITE_BASE_URL` に入れるのは **Pages のほう**です。
+  Worker が予報JSONを読みに行く先だからです。
+
+**逆に入れてしまうのが一番多い失敗です。**「アプリのURL＝人が見る側」「WorkerのURL＝機械が叩く側」と覚えてください。
+
 ---
 
 ## STEP 0 — Cloudflare Pages を先に用意する
@@ -127,12 +141,36 @@ LINE Official Account Manager で：
 > あいさつメッセージをオフにするのは、友だち追加時の案内を**アプリ側から送る**ためです。
 > アプリ側の案内は「応答メッセージ（reply）」なので、**月200通の無料枠を消費しません。**
 
+### ❓ この段階で「Webhook URL」を求められたら
+
+設定 → Messaging API の画面にも **Webhook URL** の入力欄があります。
+**ここはまだ空のままにして先に進んでください。** 入れるべき Worker の URL は
+STEP 5 でデプロイして初めて発行されるため、この時点では存在しません。
+
+トグルの **Webhook をオンにするだけ**でこの STEP は完了です。
+URL の登録は STEP 6 で行います。
+
 ---
 
 ## STEP 4 — トークンとシークレットを控える
 
 [LINE Developers コンソール](https://developers.line.biz/console/) を開きます。
 STEP 2 で作ったプロバイダー → 作成されたチャネルを選択。
+
+> ⚠️ **サイトを間違えやすいので注意。**
+> ここまで作業してきた **LINE Official Account Manager**（`manager.line.biz`）ではありません。
+> **LINE Developers コンソール**（`developers.line.biz`）です。
+>
+> どちらにも「Messaging API」という名前の画面があるうえ、内容が違います。
+>
+> | サイト | Messaging API画面にあるもの |
+> |---|---|
+> | Official Account Manager | Channel ID / Channel secret / Webhook URL **のみ** |
+> | **Developers コンソール** | **アクセストークン**・Webhook・応答設定など |
+>
+> 迷ったら、Official Account Manager の Messaging API 画面の**最下部**にある
+> 「その他の設定は**LINE Developersコンソール**から行えます」のリンクを踏むと、
+> 該当チャネルに直接飛べます。
 
 控えるものは **3つ**。メモ帳などに貼っておいてください。
 
@@ -148,9 +186,16 @@ STEP 2 で作ったプロバイダー → 作成されたチャネルを選択�
 → 障害時の警告を自分だけに送るのに使います。
 
 ### ③ チャネルアクセストークン（長期）
-**「Messaging API設定」** タブ → 一番下 `チャネルアクセストークン（長期）` → **発行**
+**「Messaging API設定」** タブ → **ページ最下部** `チャネルアクセストークン（長期）` → **発行**
 
 → メッセージを送るのに使います。**再表示できないので必ずコピーしてください。**
+
+> **「発行」ボタンが見つからない場合**
+> - **Official Account Manager 側を見ていませんか。** 上の注意書きを参照（最頻出の原因）
+> - ページが長いので **最下部までスクロール**したか
+> - タブが「チャネル基本設定」のままになっていないか
+>
+> 万一トークンを失っても同じ画面から**再発行**できます（古いトークンは無効になります）。
 
 > 🔒 この3つは**パスワードと同じ**です。GitHubにコミットしない・スクショをSNSに上げない。
 > 漏れると勝手にメッセージを送られます。万一漏らしたら、同じ画面から再発行してください。

@@ -29,11 +29,11 @@ DEFAULT_LOCATION_ID = "miyazaki-shi"
 # 実際の id は `wrangler kv namespace create USERS` などで作って差し替える
 [[kv_namespaces]]
 binding = "USERS"
-id = "REPLACE_WITH_USERS_NAMESPACE_ID"
+id = "10bcc814161746fcb9097a24dd363d72"
 
 [[kv_namespaces]]
 binding = "STATE"
-id = "REPLACE_WITH_STATE_NAMESPACE_ID"
+id = "c3e590279bc24fdaa19273e63ec33740"
 
 # ── Secrets（wrangler secret put で登録する。ここには書かない）──
 #   LINE_CHANNEL_ACCESS_TOKEN … Messaging API のチャネルアクセストークン
