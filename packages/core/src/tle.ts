@@ -106,6 +106,40 @@ export async function fetchElements(
   return parseOmm(data[0] as OMMJsonObject);
 }
 
+/**
+ * CelesTrak から名前でまとめて軌道要素を取得する。
+ *
+ * BlueBird（SPACEMOBILE-NNN）のように機数が増減するシリーズ用。
+ * 12機を CATNR で個別に取りに行くと12回アクセスすることになるので、
+ * 1回の名前検索でまとめて受け取る（CelesTrak の利用規約への配慮）。
+ *
+ * 該当が無い場合は空配列を返す（例外にしない）。
+ * シリーズがカタログ名を変えることは実際に起こりうるが、
+ * それで予報全体を止めるべきではないため。
+ */
+export async function fetchElementsByName(
+  name: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<OrbitalElements[]> {
+  const url = `${CELESTRAK_GP_ENDPOINT}?NAME=${encodeURIComponent(name)}&FORMAT=json`;
+  const response = await fetchImpl(url);
+  if (!response.ok) {
+    throw new TleError(
+      `CelesTrak から取得できませんでした (HTTP ${response.status})`,
+    );
+  }
+
+  // 該当が無いとき CelesTrak は JSON ではなく "No GP data found" という
+  // プレーンテキストを返す。JSON.parse させると例外になるので先に本文で判定する
+  const text = await response.text();
+  if (!text.trimStart().startsWith('[')) return [];
+
+  const data: unknown = JSON.parse(text);
+  if (!Array.isArray(data)) return [];
+
+  return data.map((omm) => parseOmm(omm as OMMJsonObject));
+}
+
 /** ミラーJSONの形式。/data/tle/tracked.json に保存する */
 export interface TleMirror {
   schemaVersion: number;

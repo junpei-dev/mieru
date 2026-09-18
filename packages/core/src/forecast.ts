@@ -6,14 +6,19 @@
  * 二重実装を避けることが要件 NFR-9 の目的そのもの。
  */
 
-import { FORECAST_DAYS, MS_PER_DAY } from './constants.js';
+import {
+  FORECAST_DAYS,
+  MIN_STORED_GEOMETRIC_QUALITY,
+  MIN_STORED_PASSES,
+  MS_PER_DAY,
+} from './constants.js';
 import { findPasses } from './passes.js';
 import { fetchWeatherSeries, sampleWeatherAt } from './weather.js';
 import type { WeatherSeries } from './weather.js';
-import { toScoredPass } from './scoring.js';
+import { geometricQuality, toScoredPass } from './scoring.js';
 import { isFresh, ageInDays } from './tle.js';
 import type { OrbitalElements } from './tle.js';
-import { findSatelliteSpec, ISS } from './satellites.js';
+import { resolveSatelliteSpec } from './satellites.js';
 import type { ObserverSite, Pass, PassesDocument, ScoredPass } from './types.js';
 
 export interface BuildForecastOptions {
@@ -60,12 +65,11 @@ export async function buildForecast(
     // 古い軌道要素は静かに使わない。方角が数度ずれた予報は害にしかならない
     if (!isFresh(element, fromMs)) continue;
 
-    const spec = findSatelliteSpec(element.noradId) ?? {
-      ...ISS,
-      noradId: element.noradId,
-      name: element.objectName,
-      displayName: element.objectName,
-    };
+    // 判別できない衛星は飛ばす。
+    // 以前は ISS の定義を流用していたが、ISSは -1.8等と極めて明るいため、
+    // 暗い衛星を「金星より明るい」と予報してしまう致命的なバグになる。
+    const spec = resolveSatelliteSpec(element.noradId, element.objectName);
+    if (!spec) continue;
 
     passes.push(
       ...findPasses({
@@ -80,12 +84,33 @@ export async function buildForecast(
 
   passes.sort((a, b) => a.culmination.timeMs - b.culmination.timeMs);
 
-  const scoredPasses: ScoredPass[] = passes.map((pass) =>
+  const allScored: ScoredPass[] = passes.map((pass) =>
     toScoredPass(
       pass,
       weather ? sampleWeatherAt(weather, pass.culmination.timeMs) : null,
     ),
   );
+
+  // 見に行く価値のないパスは残さない。
+  // 追跡衛星が増えると、仰角が低い・暗い・深夜といった理由で
+  // 誰も見ないパスが大量に出て、予報が実質ノイズになる。
+  const worthwhile = allScored.filter(
+    (scored) =>
+      geometricQuality(scored.score.factors) >= MIN_STORED_GEOMETRIC_QUALITY,
+  );
+
+  // 全部落ちた場合でも「次のチャンス」を示せるよう、良いものから最低限は残す
+  const scoredPasses =
+    worthwhile.length >= MIN_STORED_PASSES
+      ? worthwhile
+      : [...allScored]
+          .sort(
+            (a, b) =>
+              geometricQuality(b.score.factors) -
+              geometricQuality(a.score.factors),
+          )
+          .slice(0, MIN_STORED_PASSES)
+          .sort((a, b) => a.pass.culmination.timeMs - b.pass.culmination.timeMs);
 
   return {
     schemaVersion: 1,

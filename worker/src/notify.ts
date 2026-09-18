@@ -16,6 +16,7 @@ import {
   findSite,
   nextNotworthyPass,
   passesTonight,
+  decodePassesDocument,
   pregeneratedSiteFor,
   sampleWeatherAt,
   scorePass,
@@ -27,6 +28,7 @@ import {
   MS_PER_HOUR,
 } from '@mieru/core';
 import type {
+  WirePassesDocument,
   IndexDocument,
   ObserverSite,
   PassesDocument,
@@ -81,7 +83,9 @@ async function fetchPasses(
       { cf: { cacheTtl: 300 } },
     );
     if (!response.ok) return null;
-    return (await response.json()) as PassesDocument;
+    return decodePassesDocument(
+      (await response.json()) as WirePassesDocument,
+    );
   } catch {
     return null;
   }

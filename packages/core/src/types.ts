@@ -43,6 +43,7 @@ export interface ObserverSite {
 export type SatelliteKind =
   | 'iss'
   | 'css'
+  | 'bluebird'
   | 'starlink-train'
   | 'starlink-operational';
 

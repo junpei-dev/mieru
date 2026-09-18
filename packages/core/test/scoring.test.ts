@@ -91,10 +91,27 @@ describe('個別の因子', () => {
     expect(elevationFactor(30)).toBeGreaterThan(elevationFactor(20));
   });
 
-  it('等級因子は明るいほど大きい', () => {
+  it('等級因子は明るいほど大きく、単調に減る', () => {
+    // 金星級は満点。ここから暗くなるほど下がり続けること
     expect(magnitudeFactor(-3.4)).toBeCloseTo(1.0, 2);
-    expect(magnitudeFactor(1)).toBeCloseTo(0.5, 1);
+    const samples = [-3.4, -2, -1, 0, 1, 2, 3, 4, 5, 7].map(magnitudeFactor);
+    for (let i = 1; i < samples.length; i += 1) {
+      expect(samples[i]!).toBeLessThanOrEqual(samples[i - 1]!);
+    }
     expect(magnitudeFactor(7)).toBeLessThan(0.1);
+  });
+
+  it('肉眼で確実に見える明るさを不当に低く評価しない', () => {
+    // −0.8等（シリウス級）のBlueBirdが直線式では0.80止まりになり、
+    // 晴天・仰角79°でも通知に届かなかった。実際の見つけやすさに合わせてある
+    expect(magnitudeFactor(-0.8)).toBeGreaterThan(0.93);
+    expect(magnitudeFactor(0)).toBeGreaterThan(0.85);
+  });
+
+  it('街中で追えない暗さは大きく減点する', () => {
+    // 3等より暗い動く点を肉眼で追うのは現実的でない
+    expect(magnitudeFactor(3)).toBeLessThan(0.4);
+    expect(magnitudeFactor(4)).toBeLessThan(0.15);
   });
 
   it('暗さ因子は太陽高度 -6°より明るいと0になる', () => {

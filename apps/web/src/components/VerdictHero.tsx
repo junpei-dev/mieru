@@ -12,6 +12,7 @@ import { Link } from 'react-router';
 import {
   azimuthToCompass8Ja,
   describeMagnitudeJa,
+  shortSatelliteNameJa,
   formatJstDate,
   formatJstTime,
   formatDurationJa,
@@ -105,9 +106,13 @@ export function VerdictHero({
           </span>
         </div>
 
+        {/* どの衛星かを必ず出す。ISSとBlueBirdでは見え方も明るさも違う */}
         <h1 className="mt-2 text-[26px] font-bold text-[var(--color-accent)]">
-          今夜は見えます
+          今夜は{shortSatelliteNameJa(pass.satelliteName)}が見えます
         </h1>
+        <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-faint)]">
+          {pass.satelliteName}
+        </p>
 
         <div className="mt-4 flex items-baseline gap-3">
           <span className="tnum text-[44px] leading-none font-bold tracking-tight">

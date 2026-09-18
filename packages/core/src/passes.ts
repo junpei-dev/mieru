@@ -26,6 +26,7 @@ import {
   BISECTION_ITERATIONS,
   COARSE_STEP_SEC,
   GOLDEN_SECTION_ITERATIONS,
+  MAX_NAKED_EYE_MAGNITUDE,
   MAX_SUN_ALTITUDE_DEG,
   MAX_TRACK_POINTS,
   MIN_USEFUL_ELEVATION_DEG,
@@ -63,6 +64,13 @@ export interface PassSearchOptions {
   minElevationDeg?: number;
   /** 観測地の太陽高度がこれより高ければ捨てる。既定 -6° */
   maxSunAltitudeDeg?: number;
+  /**
+   * これより暗いパスは捨てる[等級]。既定 4.5。
+   *
+   * BlueBirdのように多数機を追跡すると、暗いパスが大量に混ざって
+   * 予報が「見えないものだらけ」になる。肉眼で追えないものは最初から出さない。
+   */
+  maxMagnitude?: number;
   /**
    * 衛星が地球の影に入っているパスを捨てるか。既定 true。
    *
@@ -299,6 +307,7 @@ export function findPasses(options: PassSearchOptions): Pass[] {
     endMs,
     minElevationDeg = MIN_USEFUL_ELEVATION_DEG,
     maxSunAltitudeDeg = MAX_SUN_ALTITUDE_DEG,
+    maxMagnitude = MAX_NAKED_EYE_MAGNITUDE,
     requireIlluminated = true,
   } = options;
 
@@ -331,6 +340,7 @@ export function findPasses(options: PassSearchOptions): Pass[] {
         losMs,
         minElevationDeg,
         maxSunAltitudeDeg,
+        maxMagnitude,
         requireIlluminated,
       );
       if (pass) passes.push(pass);
@@ -357,6 +367,7 @@ function buildPass(
   losMs: number,
   minElevationDeg: number,
   maxSunAltitudeDeg: number,
+  maxMagnitude: number,
   requireIlluminated: boolean,
 ): Pass | null {
   const culminationMs = refineCulmination(satrec, geodetic, aosMs, losMs);
@@ -401,6 +412,10 @@ function buildPass(
   }
   const peakMagnitude =
     magnitudes.length > 0 ? Math.min(...magnitudes) : Number.POSITIVE_INFINITY;
+
+  // フィルタ4：肉眼で追えない暗さなら予報に載せない。
+  // 「理論上は通るが見えない」情報はユーザーの時間を奪うだけ
+  if (requireIlluminated && peakMagnitude > maxMagnitude) return null;
 
   return {
     id: buildPassId(spec.noradId, culminationMs),

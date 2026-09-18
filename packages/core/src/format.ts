@@ -73,6 +73,21 @@ export function formatDurationJa(seconds: number): string {
   return sec === 0 ? `${min}分` : `${min}分${sec}秒`;
 }
 
+/**
+ * 見出しや通知文で使う短い呼び名。
+ *
+ * 「国際宇宙ステーション」は正式だが長すぎて、
+ * 「今夜は国際宇宙ステーションが見えます」だと見出しが窮屈になる。
+ * 一覧やカードには正式名（displayName）をそのまま使う。
+ */
+export function shortSatelliteNameJa(displayName: string): string {
+  if (displayName.includes('国際宇宙ステーション')) return 'ISS';
+  if (displayName.includes('天宮')) return '天宮';
+  if (displayName.startsWith('BlueBird')) return 'BlueBird';
+  if (displayName.includes('Starlink')) return 'Starlink';
+  return displayName;
+}
+
 /** 雲量を言葉にする */
 export function describeCloudJa(cloudPct: number): string {
   if (cloudPct <= 10) return '快晴';

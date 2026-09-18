@@ -59,8 +59,67 @@ export function elevationFactor(maxElevationDeg: number): number {
  * 明るさの因子。
  * -2等なら市街地でも一目瞭然。+4等になると肉眼では厳しい。
  */
+/**
+ * 光度から「見つけられる確率」への変換表。
+ *
+ * 等級と見つけやすさは線形ではない。
+ * −1等（シリウス級）と−4等（金星級）の差は、
+ * 「すぐ見つかる」と「すぐ見つかる」の差でしかない。
+ * 一方 2等と4等の差は「探せば見える」と「まず無理」ほど違う。
+ *
+ * 当初は直線式にしていたが、それだと−0.8等のBlueBirdが0.80止まりになり、
+ * 晴天・仰角79°という「ほぼ確実に見える」条件でも通知されなかった。
+ * 実際の見つけやすさに合わせて折れ線で定義し直す。
+ */
+const MAGNITUDE_CURVE: ReadonlyArray<readonly [magnitude: number, weight: number]> = [
+  [-2.0, 1.0], // 金星級。見逃しようがない
+  [-1.0, 0.97], // シリウス級
+  [0.0, 0.9], // 一等星より明るい
+  [1.0, 0.78], // 一等星なみ
+  [2.0, 0.6], // 北斗七星なみ。街中でも一応見える
+  [3.0, 0.35], // 探せば見えるが、動く点を追うのは難しい
+  [4.0, 0.1], // 郊外でようやく
+  [5.0, 0.03], // 実質不可能
+];
+
 export function magnitudeFactor(peakMagnitude: number): number {
-  return clamp((4.0 - peakMagnitude) / 6.0, 0.02, 1.0);
+  const first = MAGNITUDE_CURVE[0];
+  const last = MAGNITUDE_CURVE[MAGNITUDE_CURVE.length - 1];
+  if (!first || !last) return 0.02;
+
+  if (peakMagnitude <= first[0]) return first[1];
+  if (peakMagnitude >= last[0]) return last[1];
+
+  // 表の区間を見つけて線形補間する
+  for (let i = 1; i < MAGNITUDE_CURVE.length; i += 1) {
+    const lower = MAGNITUDE_CURVE[i - 1];
+    const upper = MAGNITUDE_CURVE[i];
+    if (!lower || !upper) continue;
+    if (peakMagnitude <= upper[0]) {
+      const ratio = (peakMagnitude - lower[0]) / (upper[0] - lower[0]);
+      return clamp(lower[1] + ratio * (upper[1] - lower[1]), 0.02, 1.0);
+    }
+  }
+  return last[1];
+}
+
+/**
+ * 天気を除いた「軌道条件だけの見やすさ」を返す（0〜1）。
+ *
+ * 天気は日々変わるが、軌道条件は変わらない。
+ * 予報に保存する価値があるパスかどうかの判定には、
+ * 天気に左右されないこちらを使う。
+ * （曇り予報の日に「保存する価値なし」と判断して消すと、
+ *   晴れたときに何も出せなくなる）
+ */
+export function geometricQuality(factors: Record<ScoreFactorKey, number>): number {
+  return (
+    factors.elevation *
+    factors.magnitude *
+    factors.darkness *
+    factors.hour *
+    factors.duration
+  );
 }
 
 /**

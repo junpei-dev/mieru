@@ -20,9 +20,12 @@ import { fileURLToPath } from 'node:url';
 import {
   buildForecast,
   fetchElements,
+  fetchElementsByName,
   fetchWeatherSeries,
+  isPayloadName,
+  encodePassesDocument,
   fromMirror,
-  TRACKED_SATELLITES,
+  TRACKED_SOURCES,
   FORECAST_DAYS,
   NOTIFY_SCORE_THRESHOLD,
   isFresh,
@@ -129,9 +132,40 @@ async function loadElements(): Promise<{
 }> {
   try {
     const elements: OrbitalElements[] = [];
-    for (const spec of TRACKED_SATELLITES) {
-      elements.push(await fetchElements(spec.noradId, politeFetch));
-      log(`TLE取得: ${spec.displayName} (NORAD ${spec.noradId})`);
+
+    for (const source of TRACKED_SOURCES) {
+      try {
+        const fetched =
+          source.query.type === 'catnr'
+            ? [await fetchElements(source.query.catnr, politeFetch)]
+            : await fetchElementsByName(source.query.name, politeFetch);
+
+        if (fetched.length === 0) {
+          throw new Error('該当する軌道要素がありません');
+        }
+
+        // 名前検索は衛星本体だけでなくデブリも返す。
+        // 例: "SPACEMOBILE-001 DEB" は高度450kmの小片で肉眼では見えない。
+        // ここで落としておかないとミラーにも混ざり、PWA側でも無駄に計算される
+        const payloads = fetched.filter((element) =>
+          isPayloadName(element.objectName),
+        );
+        const dropped = fetched.length - payloads.length;
+        elements.push(...payloads);
+        log(
+          `TLE取得: ${source.label} — ${payloads.length}機` +
+            (dropped > 0 ? `（デブリ等 ${dropped}件を除外）` : ''),
+        );
+      } catch (error) {
+        // ISSが取れないのは異常事態なので止める。
+        // BlueBirdのようにカタログ名が変わりうるものは、欠けても予報は続ける
+        if (source.required) throw error;
+        log(`TLE取得に失敗: ${source.label} — ${String(error)}（この衛星は除外して続行）`);
+      }
+    }
+
+    if (elements.length === 0) {
+      throw new Error('どの衛星の軌道要素も取得できませんでした');
     }
     return { elements, fetchedAtMs: Date.now(), fromMirrorFile: false };
   } catch (error) {
@@ -200,10 +234,12 @@ async function main(): Promise<void> {
       weather,
     });
 
-    const compact: PassesDocument = {
+    // 桁を落としてから、トラックを配列表現に圧縮する。
+    // トラックがJSONの9割を占めるため、ここが容量に直結する
+    const compact = encodePassesDocument({
       ...document,
       scoredPasses: document.scoredPasses.map(compactScoredPass),
-    };
+    });
 
     const bytes = await writeJson(
       join(DATA_DIR, `passes/${site.id}.json`),

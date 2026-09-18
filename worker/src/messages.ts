@@ -11,6 +11,7 @@ import {
   azimuthToCompass8Ja,
   describeCloudJa,
   describeMagnitudeJa,
+  shortSatelliteNameJa,
   describePathJa,
   formatDurationJa,
   formatJstDate,
@@ -33,9 +34,13 @@ export function advanceMessage(
   const { pass, weather } = scored;
   const direction = azimuthToCompass8Ja(pass.start.azimuthDeg);
 
+  // ISS・天宮・BlueBird で明るさも見え方も違うので、どれが来るかを必ず書く
+  const satellite = shortSatelliteNameJa(pass.satelliteName);
+
   const lines = [
-    '🛰 今夜、ISSが見えます',
+    `🛰 今夜、${satellite}が見えます`,
     '',
+    pass.satelliteName !== satellite ? `（${pass.satelliteName}）` : '',
     `${formatJstDate(pass.start.timeMs)} ${formatJstTime(pass.start.timeMs)} 〜 ${formatJstTime(pass.end.timeMs)}`,
     `（${siteName}）`,
     DIVIDER,
@@ -86,7 +91,7 @@ export function reminderMessage(
   const direction = azimuthToCompass8Ja(pass.start.azimuthDeg);
 
   return [
-    '⏰ まもなくISSが通ります',
+    `⏰ まもなく${shortSatelliteNameJa(pass.satelliteName)}が通ります`,
     '',
     `${formatJstTime(pass.start.timeMs)}、${direction} の空。`,
     `最大 ${Math.round(pass.culmination.elevationDeg)}°まで昇ります。`,

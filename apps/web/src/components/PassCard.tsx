@@ -45,6 +45,11 @@ export function PassCard({
             )}
           </div>
 
+          {/* 複数の衛星を追跡しているので、どれのパスかを必ず示す */}
+          <p className="mt-0.5 text-[11px] font-medium text-[var(--color-orbit)]">
+            {pass.satelliteName}
+          </p>
+
           <p className="mt-1 truncate text-[12.5px] text-[var(--color-ink-sub)]">
             {describePathJa(
               pass.start.azimuthDeg,

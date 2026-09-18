@@ -11,7 +11,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { ObserverSite, PassesDocument } from '@mieru/core';
+import { decodePassesDocument } from '@mieru/core';
+import type {
+  ObserverSite,
+  PassesDocument,
+  WirePassesDocument,
+} from '@mieru/core';
 import type {
   ForecastRequest,
   ForecastResponse,
@@ -41,7 +46,10 @@ async function fetchServerForecast(
     });
     if (!response.ok) return null;
 
-    const document = (await response.json()) as PassesDocument;
+    // 配信JSONはトラックを配列に圧縮してある。ここで扱いやすい形に戻す
+    const document = decodePassesDocument(
+      (await response.json()) as WirePassesDocument,
+    );
     // 古すぎる予報は使わない。軌道要素が古いと方角がずれる
     if (Date.now() - document.generatedAtMs > MAX_SERVER_AGE_MS) return null;
     return document;
