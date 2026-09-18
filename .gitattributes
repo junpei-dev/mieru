@@ -1,0 +1,14 @@
+# 改行コードをリポジトリ内では LF に統一する。
+# 開発は Windows、GitHub Actions は Ubuntu で動くため、
+# これを入れておかないと差分が改行だけで埋まることがある。
+* text=auto eol=lf
+
+# バイナリは変換しない
+*.png binary
+*.ico binary
+*.woff2 binary
+
+# 自動生成される予報データ。
+# GitHub上で「差分が大きい」と表示されるのを抑え、レビューの邪魔にならないようにする
+apps/web/public/data/** linguist-generated=true
+package-lock.json linguist-generated=true

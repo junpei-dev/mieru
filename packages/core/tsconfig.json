@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    // core はブラウザ（PWA）と Node（バッチ）と Workers の3環境で動く。
+    // fetch / URLSearchParams の型のために DOM を含めるが、
+    // document や window は使わないこと（Node で実行時エラーになる）。
+    "lib": ["ES2022", "DOM"],
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

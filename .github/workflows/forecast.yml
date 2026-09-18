@@ -1,0 +1,69 @@
+name: 予報の生成
+
+# 重い軌道計算（7日分・29地点）はここで行う。
+# Cloudflare Workers の無料プランは Cron Trigger でも CPU 10ms なので、
+# SGP4 の探索は載らない。時刻の精度が要らない処理なので GitHub Actions が適任。
+on:
+  schedule:
+    # 20:17 UTC = 05:17 JST。
+    # 毎時0分は全世界のジョブが集中して遅延が大きいため、意図的にずらしている。
+    # 朝10時の通知判定（Cloudflare Worker 側）より前に終わっていればよい。
+    - cron: '17 20 * * *'
+  workflow_dispatch: # 手動実行（デプロイ直後の確認用）
+  push:
+    branches: [main]
+    paths:
+      # 計算ロジックが変わったら予報を作り直す
+      - 'packages/core/**'
+      - 'apps/notifier/**'
+      - '.github/workflows/forecast.yml'
+
+# 同時に走らせない。データファイルの競合を防ぐ
+concurrency:
+  group: forecast
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 生成した JSON をコミットするため
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 依存をインストール
+        run: npm ci
+
+      - name: コアのテスト
+        # 軌道計算が壊れたまま予報を配信しないための関門。
+        # ここが落ちたら古い予報のまま止めるほうが、間違った予報を出すよりよい。
+        run: npm test --workspace @mieru/core
+
+      - name: 予報を生成
+        run: npm run forecast
+
+      - name: 変更をコミット
+        run: |
+          git config user.name  "mieru-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/public/data
+          if git diff --staged --quiet; then
+            echo "変更なし（予報が同一）"
+            exit 0
+          fi
+          git commit -m "chore(data): 予報を更新 $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+
+      - name: サマリを出力
+        run: |
+          echo "### 予報を更新しました" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat apps/web/public/data/index.json >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,23 @@
+{
+  "name": "@mieru/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "軌道計算・可視判定・スコアリング。ブラウザとサーバで共有する唯一のロジック層",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "satellite.js": "^7.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
+  }
+}

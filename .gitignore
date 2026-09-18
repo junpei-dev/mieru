@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# ビルド成果物
+packages/*/dist/
+apps/*/dist/
+worker/dist/
+
+# エディタ
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# ログ
+*.log
+npm-debug.log*

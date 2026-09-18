@@ -1,0 +1,41 @@
+name = "mieru-notifier"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+# fetch/Request など Node 互換APIを有効化する
+compatibility_flags = ["nodejs_compat"]
+
+# ── Cron Trigger ──────────────────────────────
+# 無料プランは アカウント全体で5個まで。ここでは2個しか使わない。
+#
+# 重要：無料プランの CPU 上限は Cron 実行でも 10ms。
+# この Worker では軌道計算を一切行わず、
+# 「事前計算済みJSONを読む → 数値を比べる → LINE APIを叩く」だけにしている。
+# fetch の待ち時間は CPU 時間に計上されないので、10ms に十分収まる。
+[triggers]
+crons = [
+  # 01:07 UTC = 10:07 JST … 朝の予告判定（今夜見えるかを知らせる）
+  "7 1 * * *",
+  # 15分ごと … リマインド判定（開始30分前）＋ データ鮮度の監視
+  "*/15 * * * *",
+]
+
+[vars]
+# PWA の公開URL。通知文のリンクと、予報JSONの取得元に使う
+SITE_BASE_URL = "https://mieru.pages.dev"
+# LINEのユーザー登録がまだ無いとき（Phase 1）に使う既定地点
+DEFAULT_LOCATION_ID = "miyazaki-shi"
+
+# ── KV ────────────────────────────────────────
+# 実際の id は `wrangler kv namespace create USERS` などで作って差し替える
+[[kv_namespaces]]
+binding = "USERS"
+id = "REPLACE_WITH_USERS_NAMESPACE_ID"
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "REPLACE_WITH_STATE_NAMESPACE_ID"
+
+# ── Secrets（wrangler secret put で登録する。ここには書かない）──
+#   LINE_CHANNEL_ACCESS_TOKEN … Messaging API のチャネルアクセストークン
+#   LINE_CHANNEL_SECRET       … Webhook 署名検証用のチャネルシークレット
+#   ADMIN_LINE_USER_ID        … 運用警告の宛先（自分のLINE userId）

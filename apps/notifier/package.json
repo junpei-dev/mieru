@@ -1,0 +1,20 @@
+{
+  "name": "@mieru/notifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Actions で1日1回走る予報生成バッチ。TLE取得→全地点のパス計算→JSON出力",
+  "scripts": {
+    "forecast": "tsx src/buildForecast.ts",
+    "preview": "tsx src/preview.ts",
+    "typecheck": "tsc --noEmit",
+    "diagnose": "tsx src/diagnose.ts"
+  },
+  "dependencies": {
+    "@mieru/core": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "@types/node": "^24.10.1"
+  }
+}

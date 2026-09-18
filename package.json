@@ -1,0 +1,25 @@
+{
+  "name": "mieru",
+  "version": "0.1.0",
+  "private": true,
+  "description": "人工衛星（ISS）を肉眼で見るための観測支援 PWA",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "worker"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev": "npm run dev --workspace @mieru/web",
+    "forecast": "npm run forecast --workspace @mieru/notifier"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

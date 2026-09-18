@@ -1,0 +1,20 @@
+{
+  "name": "@mieru/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker。LINE通知の時刻判定とWebhook受信",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@mieru/core": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251106.0",
+    "wrangler": "^4.48.0"
+  }
+}

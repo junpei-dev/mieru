@@ -1,0 +1,180 @@
+@import 'tailwindcss';
+
+/*
+ * ミエル デザイントークン
+ *
+ * 暗所で見るアプリなので、明るい背景は使わない。
+ * 目が暗さに慣れた状態（暗順応）を壊さないよう、
+ * アクセントは赤寄りのアンバーを選んでいる（青白い光は暗順応を壊す）。
+ *
+ * 影（drop-shadow）は使わない。暗い画面では見えないため、
+ * 階層は「境界線」と「発光（glow）」で表現する。
+ */
+@theme {
+  /* 夜空 */
+  --color-night-900: #05070d;
+  --color-night-800: #080b14;
+  --color-night-700: #0b1020;
+  --color-night-600: #121a2e;
+
+  /* 面と境界 */
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-surface-strong: rgba(255, 255, 255, 0.07);
+  --color-edge: rgba(255, 255, 255, 0.09);
+  --color-edge-strong: rgba(255, 255, 255, 0.16);
+
+  /* 文字 */
+  --color-ink: #e8ecf5;
+  --color-ink-sub: #8b95ac;
+  --color-ink-faint: #5b6479;
+
+  /* 状態 */
+  --color-accent: #ffc46b; /* 「見える」。星の色 */
+  --color-accent-deep: #f0a03c;
+  --color-orbit: #7dd3fc; /* 軌道線 */
+  --color-muted: #5b6479; /* 「見えない」 */
+  --color-warn: #f87171;
+
+  --radius-card: 20px;
+
+  --font-sans:
+    'Noto Sans JP', system-ui, -apple-system, 'Hiragino Kaku Gothic ProN',
+    'Yu Gothic', sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ── 基本 ────────────────────────────────── */
+
+html {
+  background: var(--color-night-900);
+  /* iOS でオーバースクロールしたとき白が見えないようにする */
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  /* 上に向かってわずかに明るくなる＝地平線側が明るい夜空の再現 */
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 50% 100%,
+      var(--color-night-600) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-night-900) 0%,
+      var(--color-night-700) 100%
+    );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 数値は等幅にして桁を揃える。時刻が縦に並んだとき読みやすい */
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 部品 ────────────────────────────────── */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* 発光。影の代わりに階層を作る */
+.glow-accent {
+  box-shadow: 0 0 40px -8px rgba(255, 196, 107, 0.28);
+}
+.glow-orbit {
+  box-shadow: 0 0 32px -10px rgba(125, 211, 252, 0.25);
+}
+
+/* タップ領域を最低44pxに保つ（屋外・寒い指での操作を想定） */
+.tap {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* iOS のセーフエリア */
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ── アニメーション ──────────────────────── */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/*
+ * 軌道線を描き進める。進行方向が直感的に伝わる。
+ * path に pathLength="1" を付けて長さを正規化しているので、
+ * JS で getTotalLength() を測らなくても一定速度で描ける。
+ */
+@keyframes draw-path {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.draw-in {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-path 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+
+/* 動きを止める設定のときは、軌道線は最初から全部描かれた状態にする */
+@media (prefers-reduced-motion: reduce) {
+  .draw-in {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * 動きに敏感な人のために、アニメーションを止める。
+ * 「情報が伝わること」が動きより優先。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
