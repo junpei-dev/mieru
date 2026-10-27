@@ -111,6 +111,15 @@ export const NAUTICAL_TWILIGHT_DEG = -12;
 /** これ以上なら通知する（FR-4.4） */
 export const NOTIFY_SCORE_THRESHOLD = 70;
 
+/**
+ * 通知を出す時間帯の下限（convenience 0〜1）。
+ *
+ * 0.5 にすると 早朝(0.6)・夜更け(0.8)・夕方(1.0) は通知され、深夜(0.3)は通知されない。
+ * 「見えるか」はスコア側で判定済みなので、ここは純粋に
+ * 「その時刻に起きて外に出られるか」だけを見ている。
+ */
+export const MIN_CONVENIENCE_FOR_NOTIFY = 0.5;
+
 /** リマインド直前の再判定でこれを下回ったら中止する（設計書6.3） */
 export const REMINDER_ABORT_SCORE = 50;
 

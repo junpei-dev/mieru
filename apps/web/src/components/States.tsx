@@ -43,7 +43,7 @@ export function Loading() {
         </g>
         <style>{`@keyframes orbit { to { transform: rotate(360deg); } }`}</style>
       </svg>
-      <p className="text-[13px] text-[var(--color-ink-faint)]">
+      <p className="text-[13.5px] text-[var(--color-ink-faint)]">
         軌道を計算しています…
       </p>
     </div>
@@ -56,16 +56,16 @@ export function ErrorPanel({ message }: { message: string | null }) {
       <h2 className="text-[17px] font-semibold text-[var(--color-warn)]">
         予報を取得できませんでした
       </h2>
-      <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-sub)]">
+      <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--color-ink-sub)]">
         {message ?? '原因が特定できません。'}
       </p>
-      <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
+      <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
         オフラインの場合は、通信が回復すると自動的に再取得します。
       </p>
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="tap mt-4 rounded-full border border-[var(--color-edge-strong)] px-5 py-2 text-[13px]"
+        className="tap mt-4 rounded-full border border-[var(--color-edge-strong)] px-5 py-2 text-[13.5px]"
       >
         再読み込み
       </button>
@@ -119,7 +119,7 @@ export function EmptyPasses() {
         <p className="text-[15px] font-semibold text-[var(--color-ink-sub)]">
           今後7日間、見えるパスはありません
         </p>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
+        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-faint)]">
           ISSは夜通し飛んでいますが、光って見えるのは
           <br />
           日没直後と日の出前の限られた時間だけです。

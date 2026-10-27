@@ -27,7 +27,7 @@ function Header() {
       <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold">{site.name}</p>
-          <p className="text-[10.5px] text-[var(--color-ink-faint)]">
+          <p className="text-[11.5px] text-[var(--color-ink-faint)]">
             {loading
               ? '計算中…'
               : document
@@ -36,7 +36,7 @@ function Header() {
                 : 'データなし'}
           </p>
         </div>
-        <span className="shrink-0 text-[10px] tracking-[0.2em] text-[var(--color-ink-faint)]">
+        <span className="shrink-0 text-[11px] tracking-[0.2em] text-[var(--color-ink-faint)]">
           ISS
         </span>
       </div>
@@ -54,7 +54,7 @@ function BottomNav() {
             to={to}
             end={end}
             className={({ isActive }) =>
-              `tap flex flex-1 items-center justify-center rounded-xl py-2 text-[13px] font-medium transition-colors ${
+              `tap flex flex-1 items-center justify-center rounded-xl py-2 text-[13.5px] font-medium transition-colors ${
                 isActive
                   ? 'bg-[var(--color-surface-strong)] text-[var(--color-accent)]'
                   : 'text-[var(--color-ink-faint)]'

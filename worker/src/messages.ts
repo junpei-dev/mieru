@@ -11,6 +11,7 @@ import {
   azimuthToCompass8Ja,
   describeCloudJa,
   describeMagnitudeJa,
+  describeOccasionJa,
   shortSatelliteNameJa,
   describePathJa,
   formatDurationJa,
@@ -37,8 +38,14 @@ export function advanceMessage(
   // ISS・天宮・BlueBird で明るさも見え方も違うので、どれが来るかを必ず書く
   const satellite = shortSatelliteNameJa(pass.satelliteName);
 
+  const occasion = describeOccasionJa(
+    pass.start.timeMs,
+    Date.now(),
+    scored.score.timeOfDay,
+  );
+
   const lines = [
-    `🛰 今夜、${satellite}が見えます`,
+    `🛰 ${occasion}、${satellite}が見えます`,
     '',
     pass.satelliteName !== satellite ? `（${pass.satelliteName}）` : '',
     `${formatJstDate(pass.start.timeMs)} ${formatJstTime(pass.start.timeMs)} 〜 ${formatJstTime(pass.end.timeMs)}`,

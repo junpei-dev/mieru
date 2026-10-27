@@ -35,22 +35,22 @@ export function PassCard({
             <span className="tnum text-[21px] font-bold">
               {formatJstTime(pass.start.timeMs)}
             </span>
-            <span className="text-[12px] text-[var(--color-ink-faint)]">
+            <span className="text-[12.5px] text-[var(--color-ink-faint)]">
               〜{formatJstTime(pass.end.timeMs)}
             </span>
             {notable && (
-              <span className="rounded-full bg-[rgba(255,196,107,0.14)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-accent)]">
+              <span className="rounded-full bg-[rgba(255,196,107,0.14)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">
                 好条件
               </span>
             )}
           </div>
 
           {/* 複数の衛星を追跡しているので、どれのパスかを必ず示す */}
-          <p className="mt-0.5 text-[11px] font-medium text-[var(--color-orbit)]">
+          <p className="mt-0.5 text-[12px] font-medium text-[var(--color-orbit)]">
             {pass.satelliteName}
           </p>
 
-          <p className="mt-1 truncate text-[12.5px] text-[var(--color-ink-sub)]">
+          <p className="mt-1 truncate text-[13px] text-[var(--color-ink-sub)]">
             {describePathJa(
               pass.start.azimuthDeg,
               pass.culmination.azimuthDeg,
@@ -59,7 +59,7 @@ export function PassCard({
             )}
           </p>
 
-          <p className="tnum mt-1 text-[11.5px] text-[var(--color-ink-faint)]">
+          <p className="tnum mt-1 text-[12.5px] text-[var(--color-ink-faint)]">
             最大 {Math.round(pass.culmination.elevationDeg)}° ·{' '}
             {pass.peakMagnitude.toFixed(1)}等 ·{' '}
             {formatDurationJa(pass.visibleDurationSec)}見える
@@ -74,7 +74,7 @@ export function PassCard({
           <div className="text-[19px] font-bold text-[var(--color-ink)]">
             {azimuthToCompass8Ja(pass.start.azimuthDeg)}
           </div>
-          <div className="text-[10px] text-[var(--color-ink-faint)]">
+          <div className="text-[11px] text-[var(--color-ink-faint)]">
             から出現
           </div>
         </div>

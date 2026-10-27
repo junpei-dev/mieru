@@ -22,6 +22,7 @@ import { deleteUser, getUser, putUser } from './store.js';
 import {
   checkForecastFreshness,
   previewAdvance,
+  sendTestNotification,
   runAdvanceNotification,
   runReminderNotification,
 } from './notify.js';
@@ -205,6 +206,33 @@ async function handleAdminPreview(
   }
 }
 
+/**
+ * 管理者あてに実際に1通送る。無料枠を1通消費する。
+ *
+ * preview では送信経路の正しさまでは確認できないため、
+ * セットアップ直後に一度だけ叩いて「本当に届くか」を確かめるためのもの。
+ */
+async function handleAdminTestSend(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  if (!env.ADMIN_TOKEN) {
+    return new Response('admin endpoint is disabled', { status: 404 });
+  }
+  const provided =
+    request.headers.get('x-admin-token') ??
+    new URL(request.url).searchParams.get('token');
+  if (provided !== env.ADMIN_TOKEN) {
+    return new Response('forbidden', { status: 403 });
+  }
+
+  const result = await sendTestNotification(env);
+  return Response.json(result, {
+    status: result.ok ? 200 : 500,
+    headers: { 'cache-control': 'no-store' },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -221,6 +249,11 @@ export default {
     // 初回セットアップの動作確認用。ADMIN_TOKEN を設定したときだけ有効になる
     if (url.pathname === '/admin/preview') {
       return handleAdminPreview(request, env);
+    }
+
+    // 実際に1通送って、LINE連携が機能しているかを確かめる
+    if (url.pathname === '/admin/test-send') {
+      return handleAdminTestSend(request, env);
     }
 
     return new Response('mieru notifier', { status: 200 });

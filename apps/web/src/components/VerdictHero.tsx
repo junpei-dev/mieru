@@ -12,6 +12,7 @@ import { Link } from 'react-router';
 import {
   azimuthToCompass8Ja,
   describeMagnitudeJa,
+  describeOccasionJa,
   shortSatelliteNameJa,
   formatJstDate,
   formatJstTime,
@@ -31,7 +32,7 @@ interface VerdictHeroProps {
 function NextChance({ pass }: { pass: ScoredPass | null }) {
   if (!pass) {
     return (
-      <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-faint)]">
+      <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--color-ink-faint)]">
         今後7日間に好条件のパスはありません。
         <br />
         ISSの可視期間は約2か月ごとにまとまって訪れます。
@@ -41,7 +42,7 @@ function NextChance({ pass }: { pass: ScoredPass | null }) {
   return (
     <Link
       to={`/pass/${encodeURIComponent(pass.pass.id)}`}
-      className="tap mt-3 inline-flex items-center gap-2 text-[13px] text-[var(--color-ink-sub)] underline decoration-[var(--color-edge-strong)] underline-offset-4"
+      className="tap mt-3 inline-flex items-center gap-2 text-[13.5px] text-[var(--color-ink-sub)] underline decoration-[var(--color-edge-strong)] underline-offset-4"
     >
       次のチャンスは
       <span className="tnum text-[var(--color-accent)]">
@@ -64,7 +65,7 @@ export function VerdictHero({
         <h1 className="text-[22px] font-bold text-[var(--color-muted)]">
           今夜は通過しません
         </h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-sub)]">
+        <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--color-ink-sub)]">
           ISSは今夜、この場所の空に見える形では通りません。
         </p>
         <NextChance pass={nextChance} />
@@ -101,16 +102,23 @@ export function VerdictHero({
             className="inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]"
             style={{ animation: 'twinkle 2s ease-in-out infinite' }}
           />
-          <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--color-accent)]">
-            今夜のチャンス
+          <span className="text-[12px] font-semibold tracking-[0.18em] text-[var(--color-accent)]">
+            観測のチャンス
           </span>
         </div>
 
-        {/* どの衛星かを必ず出す。ISSとBlueBirdでは見え方も明るさも違う */}
-        <h1 className="mt-2 text-[26px] font-bold text-[var(--color-accent)]">
-          今夜は{shortSatelliteNameJa(pass.satelliteName)}が見えます
+        {/* どの衛星か、いつの話かを必ず出す。
+            ISSは可視期間が夕方と早朝で入れ替わるので、
+            朝に開いたとき「今夜」と書くと翌朝5時のパスを指してしまい嘘になる */}
+        <h1 className="mt-2 text-[26px] leading-snug font-bold text-[var(--color-accent)]">
+          {describeOccasionJa(
+            pass.start.timeMs,
+            Date.now(),
+            tonight.score.timeOfDay,
+          )}
+          は{shortSatelliteNameJa(pass.satelliteName)}が見えます
         </h1>
-        <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-faint)]">
+        <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-faint)]">
           {pass.satelliteName}
         </p>
 
@@ -123,7 +131,7 @@ export function VerdictHero({
           </span>
         </div>
 
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-ink-sub)]">
+        <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--color-ink-sub)]">
           最大 {Math.round(pass.culmination.elevationDeg)}° ·{' '}
           {pass.peakMagnitude.toFixed(1)}等（
           {describeMagnitudeJa(pass.peakMagnitude)}） ·{' '}
@@ -131,7 +139,7 @@ export function VerdictHero({
           {weather ? ` · 雲量 ${Math.round(weather.cloudTotalPct)}%` : ''}
         </p>
 
-        <p className="mt-4 rounded-xl border border-[var(--color-edge)] bg-[rgba(255,196,107,0.05)] p-3 text-[12.5px] leading-relaxed text-[var(--color-ink-sub)]">
+        <p className="mt-4 rounded-xl border border-[var(--color-edge)] bg-[rgba(255,196,107,0.05)] p-3 text-[13px] leading-relaxed text-[var(--color-ink-sub)]">
           ゆっくり動く明るい星のように見えます。
           <br />
           点滅する光は飛行機なので別物です。
@@ -164,7 +172,7 @@ export function VerdictHero({
         {score.reasonJa}
       </p>
 
-      <div className="mt-4 flex items-center gap-2 text-[12px] text-[var(--color-ink-faint)]">
+      <div className="mt-4 flex items-center gap-2 text-[12.5px] text-[var(--color-ink-faint)]">
         <span className="tnum">{formatJstTime(pass.start.timeMs)}</span>
         <span>に通過しますが</span>
         <span className="tnum">{score.total}点</span>

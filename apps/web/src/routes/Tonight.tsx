@@ -16,6 +16,7 @@ import { VerdictHero } from '../components/VerdictHero.js';
 import { SkyMap } from '../components/SkyMap.js';
 import { WeatherStrip } from '../components/WeatherStrip.js';
 import { PassCard } from '../components/PassCard.js';
+import { SatelliteBackground } from '../components/SatelliteBackground.js';
 import { Loading, ErrorPanel } from '../components/States.js';
 
 export function Tonight() {
@@ -44,26 +45,31 @@ export function Tonight() {
         <>
           <section className="card flex flex-col items-center px-4 py-5">
             <SkyMap pass={highlight.pass} size={320} />
-            <p className="mt-2 text-center text-[11.5px] leading-relaxed text-[var(--color-ink-faint)]">
+            <p className="mt-2 text-center text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
               外周の円が地平線、中心が真上です。
               <br />
               点線の区間は地球の影に入って見えなくなります。
             </p>
             <Link
               to={`/pass/${encodeURIComponent(highlight.pass.id)}`}
-              className="tap mt-3 rounded-full border border-[var(--color-edge-strong)] px-5 py-2 text-[13px] font-medium"
+              className="tap mt-3 rounded-full border border-[var(--color-edge-strong)] px-5 py-2 text-[13.5px] font-medium"
             >
               詳しく見る
             </Link>
           </section>
 
           <WeatherStrip weather={highlight.weather} />
+
+          {/* 空の光る点が何なのかを知れるようにする。既定では畳んでおく */}
+          <SatelliteBackground
+            satelliteName={highlight.pass.satelliteName}
+          />
         </>
       )}
 
       {others.length > 0 && (
         <section>
-          <h2 className="mb-2 px-1 text-[12px] font-semibold tracking-wide text-[var(--color-ink-sub)]">
+          <h2 className="mb-2 px-1 text-[12.5px] font-semibold tracking-wide text-[var(--color-ink-sub)]">
             今夜のその他の通過
           </h2>
           <div className="space-y-2.5">

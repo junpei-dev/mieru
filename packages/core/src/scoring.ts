@@ -3,7 +3,16 @@
  *
  * 設計書 4.5 の乗算モデル。
  *
- *   score = 100 × w_cloud × w_elevation × w_magnitude × w_darkness × w_hour × w_duration
+ *   score = 100 × w_cloud × w_elevation × w_magnitude × w_darkness × w_duration
+ *
+ * ★ 時間帯（早朝か夕方か）はここに含めない。
+ *   かつては w_hour を掛けていたが、早朝が 0.55 のため
+ *   「−4等・仰角72°・快晴」という文句なしのISSパスでも最高55点にしかならず、
+ *   しきい値70点に構造的に到達できなかった。
+ *   実際に肉眼で見えたパスが一度も通知されないという致命的な結果になっていた。
+ *
+ *   「見えるか」は物理、「都合がいいか」は人の事情。混ぜてはいけない。
+ *   時間帯は convenience として独立に持ち、通知の可否で別々に判断する。
  *
  * なぜ加算ではなく乗算なのか：
  *   加算（重み付き平均）だと「最大仰角85°・光度-4等・だが雲量100%」が高得点になる。
@@ -13,6 +22,7 @@
 
 import {
   MAX_SUN_ALTITUDE_DEG,
+  MIN_CONVENIENCE_FOR_NOTIFY,
   NAUTICAL_TWILIGHT_DEG,
   VERDICT_THRESHOLDS,
 } from './constants.js';
@@ -24,6 +34,7 @@ import type {
   PassScore,
   ScoreFactorKey,
   ScoredPass,
+  TimeOfDayKey,
   Verdict,
   WeatherSnapshot,
 } from './types.js';
@@ -117,7 +128,6 @@ export function geometricQuality(factors: Record<ScoreFactorKey, number>): numbe
     factors.elevation *
     factors.magnitude *
     factors.darkness *
-    factors.hour *
     factors.duration
   );
 }
@@ -127,15 +137,25 @@ export function geometricQuality(factors: Record<ScoreFactorKey, number>): numbe
  * 太陽高度 -6°（市民薄明の終わり）から -12°（航海薄明の終わり）にかけて
  * 空は急速に暗くなる。-12°より暗ければ条件は変わらない。
  */
-export function darknessFactor(sunAltitudeDeg: number): number {
+export function darknessFactor(
+  sunAltitudeDeg: number,
+  peakMagnitude: number,
+): number {
   if (sunAltitudeDeg > MAX_SUN_ALTITUDE_DEG) return 0;
-  const span = Math.abs(NAUTICAL_TWILIGHT_DEG - MAX_SUN_ALTITUDE_DEG); // 6°
-  const progress = clamp(
-    (-sunAltitudeDeg - Math.abs(MAX_SUN_ALTITUDE_DEG)) / span,
-    0,
-    1,
-  );
-  return 0.35 + 0.65 * progress;
+
+  // 薄明の影響は天体の明るさで全く変わる。
+  // −4等のISSは太陽高度−6°の明るい薄明でもはっきり見えるが、
+  // +2等の衛星は完全に暗くなるまで見えない。
+  // 明るいほど「完全に暗い」とみなす基準を浅くする。
+  const brightnessOffset = clamp(peakMagnitude + 4, 0, 7); // -4等→0, 0等→4, 3等→7
+  const fullDarkAtDeg = MAX_SUN_ALTITUDE_DEG - 1.6 * brightnessOffset;
+
+  // -4等級のように基準が -6° と一致する場合は、この時点で満点
+  const span = MAX_SUN_ALTITUDE_DEG - fullDarkAtDeg;
+  if (span <= 0.1) return 1;
+
+  const progress = clamp((MAX_SUN_ALTITUDE_DEG - sunAltitudeDeg) / span, 0, 1);
+  return 0.45 + 0.55 * progress;
 }
 
 /**
@@ -143,13 +163,47 @@ export function darknessFactor(sunAltitudeDeg: number): number {
  * 理論上見えても午前3時では通知する価値がない。技術的な正しさと
  * 実際に役立つかは別問題なので、ここで人間の都合を明示的に入れる。
  */
-export function hourFactor(timeMs: number): number {
+export function timeOfDayOf(timeMs: number): TimeOfDayKey {
   const hour = jstHourDecimal(timeMs);
-  if (hour >= 18 && hour < 22.5) return 1.0; // 夕方〜夜。最も観測しやすい
-  if (hour >= 22.5 && hour < 24) return 0.75; // 夜更け
-  if (hour >= 4.5 && hour < 6) return 0.55; // 早朝。起きられる人だけ
-  if (hour >= 0 && hour < 4.5) return 0.25; // 深夜
-  return 0.1; // 日中（通常は薄明フィルタで除外済み）
+  // 予報に載るパスは太陽高度 -6° 未満のものだけなので、
+  // ここに来る時点で「空は暗い」ことが保証されている。
+  // したがって時刻の境界は、暦ではなく「人が起きているか」で切る。
+  //
+  // 以前は 06:00 以降を daytime(0.1) にしていたが、
+  // 冬の 06:04 はまだ真っ暗で、仰角85°・-3.8等のISSが
+  // 「日中」として通知対象から外れていた。
+  if (hour >= 17 && hour < 23) return 'evening';
+  if (hour >= 23 || hour < 1) return 'night';
+  if (hour >= 4 && hour < 7) return 'dawn';
+  if (hour >= 1 && hour < 4) return 'midnight';
+  return 'daytime'; // 07:00〜17:00。薄明フィルタがあるため通常は該当しない
+}
+
+/** 時間帯ごとの「起きて外に出られるか」の目安（0〜1） */
+const CONVENIENCE_BY_TIME: Record<TimeOfDayKey, number> = {
+  evening: 1.0, // 夕方〜夜。誰でも出られる
+  night: 0.8, // 夜更け
+  dawn: 0.6, // 早朝。起きていれば十分見に行ける
+  midnight: 0.3, // 深夜
+  daytime: 0.1, // 日中（通常は薄明フィルタで除外済み）
+};
+
+export const TIME_OF_DAY_LABEL_JA: Record<TimeOfDayKey, string> = {
+  evening: '夕方〜夜',
+  night: '夜更け',
+  dawn: '早朝',
+  midnight: '深夜',
+  daytime: '日中',
+};
+
+/**
+ * 時間帯の都合。**スコアには掛けない。**
+ *
+ * 見えるかどうかとは無関係な「人の事情」なので、
+ * 通知を出すかどうかの判断でだけ使う。
+ */
+export function convenienceFactor(timeMs: number): number {
+  return CONVENIENCE_BY_TIME[timeOfDayOf(timeMs)];
 }
 
 /**
@@ -168,7 +222,6 @@ const FACTOR_LABEL_JA: Record<ScoreFactorKey, string> = {
   elevation: '高度',
   magnitude: '明るさ',
   darkness: '空の暗さ',
-  hour: '時間帯',
   duration: '継続時間',
 };
 
@@ -207,8 +260,6 @@ function buildReasonJa(
       return `${pass.peakMagnitude.toFixed(1)}等と暗いため、肉眼では見つけにくいです。`;
     case 'darkness':
       return 'まだ空が明るく、衛星を見分けにくい時間帯です。';
-    case 'hour':
-      return '見られる時刻が深夜・早朝のため、実際に観測するのは難しいかもしれません。';
     case 'duration':
       return `光って見えるのが${Math.round(pass.visibleDurationSec)}秒と短く、見つける前に消えてしまうかもしれません。`;
     default:
@@ -233,8 +284,10 @@ export function scorePass(
     cloud: weather ? cloudFactor(weather) : 1,
     elevation: elevationFactor(pass.culmination.elevationDeg),
     magnitude: magnitudeFactor(pass.peakMagnitude),
-    darkness: darknessFactor(pass.sunAltitudeAtCulminationDeg),
-    hour: hourFactor(pass.culmination.timeMs),
+    darkness: darknessFactor(
+      pass.sunAltitudeAtCulminationDeg,
+      pass.peakMagnitude,
+    ),
     duration: durationFactor(pass.visibleDurationSec),
   };
 
@@ -262,6 +315,8 @@ export function scorePass(
 
   return {
     total,
+    convenience: convenienceFactor(pass.culmination.timeMs),
+    timeOfDay: timeOfDayOf(pass.culmination.timeMs),
     factors,
     limitingFactor,
     verdict,
@@ -286,9 +341,23 @@ export function factorLabelJa(key: ScoreFactorKey): string {
 /**
  * 通知してよいパスかどうか。
  *
- * スコアだけでなく「天気が確認できていること」を必須条件にしている点が重要。
- * 天気不明のまま通知するくらいなら、通知しないほうがよい。
+ * 3つの条件をすべて満たすこと。
+ *   1. 天気が確認できている   … 不明のまま通知するくらいなら送らない（FR-3.3）
+ *   2. 見えやすさがしきい値以上 … 物理的に見えるか
+ *   3. 時間帯が許容範囲        … 深夜3時に起こしても意味がない
+ *
+ * 2と3を分けているのが要点。
+ * かつては時間帯をスコアに掛けていたため、早朝の完璧なISSパス（−4等・仰角72°）が
+ * 最高55点にしかならず、構造的に一度も通知されなかった。
  */
-export function isNotifiable(scored: ScoredPass, threshold: number): boolean {
-  return scored.score.weatherKnown && scored.score.total >= threshold;
+export function isNotifiable(
+  scored: ScoredPass,
+  threshold: number,
+  minConvenience: number = MIN_CONVENIENCE_FOR_NOTIFY,
+): boolean {
+  return (
+    scored.score.weatherKnown &&
+    scored.score.total >= threshold &&
+    scored.score.convenience >= minConvenience
+  );
 }

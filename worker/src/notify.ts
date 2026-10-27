@@ -295,7 +295,7 @@ export async function runReminderNotification(env: Env): Promise<void> {
       (scored) =>
         scored.pass.start.timeMs >= fromMs &&
         scored.pass.start.timeMs <= toMs &&
-        scored.score.total >= target.threshold,
+        isNotifiable(scored, target.threshold),
     );
     if (!upcoming) continue;
     if (await wasSent(env, upcoming.pass.id, 'reminder')) continue;
@@ -431,6 +431,62 @@ export async function previewAdvance(
   }
 
   return results;
+}
+
+/**
+ * 動作確認用に、管理者あてに実際に1通送る。
+ *
+ * `/admin/preview` は送信せずに文面を見るだけなので、
+ * 「LINE連携が本当に機能しているか」は確かめられない。
+ * トークンの誤り・友だち未追加・枠切れはすべて送信時にしか分からないため、
+ * 実送信を1回だけ試せる口を用意する（無料枠を1通消費する）。
+ */
+export async function sendTestNotification(
+  env: Env,
+): Promise<{ ok: boolean; detail: string }> {
+  if (!env.ADMIN_LINE_USER_ID) {
+    return {
+      ok: false,
+      detail: 'ADMIN_LINE_USER_ID が未設定です。wrangler secret put で登録してください。',
+    };
+  }
+
+  const targets = await resolveTargets(env);
+  const target = targets[0];
+  const cache = new Map<string, PassesDocument | null>();
+  const document = target ? await loadPassesFor(env, target, cache) : null;
+
+  // 直近で最も条件の良いパスを例として載せる。
+  // 無ければ文面だけのテストになるが、送信経路の確認はできる
+  const sample = document ? bestPass(document.scoredPasses) : null;
+
+  const text = sample
+    ? [
+        '✅ テスト送信です',
+        '',
+        '通知の経路は正常に動いています。',
+        'これは手動で送った確認用メッセージで、',
+        '普段はこの形式で本番の通知が届きます。',
+        '',
+        '── 直近で最も条件の良いパス ──',
+        advanceMessage(sample, env.SITE_BASE_URL, target?.site.name ?? ''),
+      ].join('\n')
+    : [
+        '✅ テスト送信です',
+        '',
+        '通知の経路は正常に動いています。',
+        '現在、予報内に通過予定のパスはありません。',
+      ].join('\n');
+
+  try {
+    await push(env.LINE_CHANNEL_ACCESS_TOKEN, env.ADMIN_LINE_USER_ID, text);
+    return { ok: true, detail: 'LINEに1通送信しました（無料枠を1通消費）。' };
+  } catch (error) {
+    return {
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /** 次の好機を調べる。中止通知で「次は◯日」と案内するために使う */

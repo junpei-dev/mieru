@@ -12,7 +12,8 @@ import {
   darknessFactor,
   durationFactor,
   elevationFactor,
-  hourFactor,
+  convenienceFactor,
+  timeOfDayOf,
   isNotifiable,
   magnitudeFactor,
   scorePass,
@@ -115,17 +116,30 @@ describe('個別の因子', () => {
   });
 
   it('暗さ因子は太陽高度 -6°より明るいと0になる', () => {
-    expect(darknessFactor(-5)).toBe(0);
-    expect(darknessFactor(-6)).toBeCloseTo(0.35, 2);
-    expect(darknessFactor(-12)).toBeCloseTo(1.0, 2);
-    expect(darknessFactor(-20)).toBeCloseTo(1.0, 2);
+    expect(darknessFactor(-5, -3)).toBe(0);
+    expect(darknessFactor(-20, 0)).toBeCloseTo(1.0, 2);
   });
 
-  it('時間帯因子は夕方から夜が最も高く、深夜は低い', () => {
+  it('明るい衛星ほど薄明に強い', () => {
+    // −4等のISSは太陽高度−6°の明るい薄明でもはっきり見える。
+    // +2等の衛星は完全に暗くならないと見えない。
+    // これを区別しないと、ISSの薄明中のパスを過小評価してしまう
+    expect(darknessFactor(-7, -4)).toBeCloseTo(1.0, 1);
+    expect(darknessFactor(-7, 2)).toBeLessThan(0.6);
+  });
+
+  it('時間帯は「都合」であってスコアには掛けない', () => {
     const evening = Date.parse('2026-09-18T11:00:00Z'); // 20:00 JST
+    const dawn = Date.parse('2026-09-18T20:00:00Z'); // 05:00 JST 翌日
     const lateNight = Date.parse('2026-09-18T18:00:00Z'); // 03:00 JST 翌日
-    expect(hourFactor(evening)).toBe(1.0);
-    expect(hourFactor(lateNight)).toBeLessThan(0.3);
+
+    expect(timeOfDayOf(evening)).toBe('evening');
+    expect(timeOfDayOf(dawn)).toBe('dawn');
+    expect(timeOfDayOf(lateNight)).toBe('midnight');
+
+    expect(convenienceFactor(evening)).toBe(1.0);
+    expect(convenienceFactor(dawn)).toBeGreaterThanOrEqual(0.5); // 通知される
+    expect(convenienceFactor(lateNight)).toBeLessThan(0.5); // 通知されない
   });
 
   it('継続時間因子は4分以上で最大、短くても0.5を下回らない', () => {
@@ -170,17 +184,71 @@ describe('scorePass — 乗算モデル', () => {
     expect(low.limitingFactor).toBe('elevation');
   });
 
-  it('深夜のパスは時間帯が足を引っ張る', () => {
+  it('時間帯はスコアを下げない（見えるものは見える）', () => {
+    // 同じ条件のパスを夕方と深夜に置いても、見えやすさは変わらないはず。
+    // 変わるのは「都合」だけ
+    const base = makePass();
+    const atEvening = Date.parse('2026-09-18T11:00:00Z'); // 20:00 JST
+    const atMidnight = Date.parse('2026-09-18T18:00:00Z'); // 03:00 JST
+
+    const makeAt = (timeMs: number) => {
+      const culmination = { ...base.culmination, timeMs };
+      return scorePass(
+        makePass({ culmination, start: culmination, end: culmination }),
+        makeWeather(),
+      );
+    };
+
+    const evening = makeAt(atEvening);
+    const midnight = makeAt(atMidnight);
+
+    expect(midnight.total).toBe(evening.total);
+    expect(midnight.convenience).toBeLessThan(evening.convenience);
+    expect(midnight.timeOfDay).toBe('midnight');
+  });
+
+  it('【回帰】早朝の好条件ISSパスが通知対象になる', () => {
+    // 実際に起きた不具合の再現。
+    // 2026-10-16 04:54 JST の宮崎：仰角72°・−4.0等・太陽高度−18°・雲20%
+    // という文句なしのパスが、早朝というだけで 46点 にしかならず
+    // しきい値70点に構造的に到達できず、一度も通知されなかった。
+    const timeMs = Date.parse('2026-10-15T19:54:00Z'); // 04:54 JST
     const culmination = {
       ...makePass().culmination,
-      timeMs: Date.parse('2026-09-18T18:00:00Z'), // 03:00 JST
+      timeMs,
+      elevationDeg: 72,
     };
+    const score = scorePass(
+      makePass({
+        culmination,
+        start: culmination,
+        end: culmination,
+        peakMagnitude: -4.0,
+        sunAltitudeAtCulminationDeg: -18,
+        visibleDurationSec: 360,
+      }),
+      // 当日の記録は雲量20〜27%。層別だとこの程度
+      makeWeather({ cloudLowPct: 10, cloudMidPct: 5, cloudHighPct: 5 }),
+    );
+
+    expect(score.timeOfDay).toBe('dawn');
+    expect(score.total).toBeGreaterThanOrEqual(70);
+    expect(
+      isNotifiable({ pass: makePass(), weather: makeWeather(), score }, 70),
+    ).toBe(true);
+  });
+
+  it('深夜のパスは見えても通知しない', () => {
+    const timeMs = Date.parse('2026-09-18T18:00:00Z'); // 03:00 JST
+    const culmination = { ...makePass().culmination, timeMs };
     const score = scorePass(
       makePass({ culmination, start: culmination, end: culmination }),
       makeWeather(),
     );
-    expect(score.limitingFactor).toBe('hour');
-    expect(score.total).toBeLessThan(45);
+    // 見えやすさは高くても、起こしてまで知らせる時刻ではない
+    expect(
+      isNotifiable({ pass: makePass(), weather: makeWeather(), score }, 50),
+    ).toBe(false);
   });
 
   it('理由文が必ず日本語で返る', () => {

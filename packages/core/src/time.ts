@@ -7,6 +7,7 @@
  */
 
 import { JST_OFFSET_MS, MS_PER_DAY } from './constants.js';
+import type { TimeOfDayKey } from './types.js';
 
 /**
  * JST での「時」を返す（0〜23）。
@@ -72,16 +73,21 @@ export function formatJstDateTime(timeMs: number): string {
  * 「今夜」の時間窓を返す。
  *
  * 日付が変わっても同じ夜として扱えるよう、JSTの 12:00 を境界にする。
- * - 12:00〜23:59 に呼ばれたら「今日の日暮れ〜翌04:00」
- * - 00:00〜11:59 に呼ばれたら「昨日の日暮れ〜今日の04:00」＝まだ同じ夜
+ * - 06:00〜23:59 に呼ばれたら「今日の日暮れ〜翌07:00」＝これから来る夜
+ * - 00:00〜05:59 に呼ばれたら「昨日の日暮れ〜今日の07:00」＝まだ同じ夜
  *
  * 日没の正確な時刻ではなく 15:00 を窓の開始にしているのは、
  * パス自体が太陽高度でフィルタ済みだから。窓は粗くてよい。
  */
 export function tonightWindow(nowMs: number): { startMs: number; endMs: number } {
   const hour = jstHour(nowMs);
-  // JST 12時より前なら「昨夜からの続き」とみなして1日戻す
-  const anchorMs = hour < 12 ? nowMs - MS_PER_DAY : nowMs;
+  // JST 6時より前なら「昨夜からの続き」とみなして1日戻す。
+  //
+  // 以前はこの境界が 12時 だった。そのため朝10:07に走る予告判定が
+  // 「昨日15:00〜今日04:00」という既に終わった時間帯を見ており、
+  // 予告通知が構造的に一度も出なかった。
+  // 朝に判定するときは「これから来る夜」を見なければならない。
+  const anchorMs = hour < 6 ? nowMs - MS_PER_DAY : nowMs;
   const anchor = new Date(anchorMs + JST_OFFSET_MS);
 
   const startJst = Date.UTC(
@@ -94,8 +100,29 @@ export function tonightWindow(nowMs: number): { startMs: number; endMs: number }
   );
   return {
     startMs: startJst - JST_OFFSET_MS,
-    endMs: startJst - JST_OFFSET_MS + 13 * 3600_000, // 翌 JST 04:00 まで
+    // 翌 JST 07:00 まで。早朝のISSパスを取りこぼさないため、
+    // 日の出前いっぱいまでを「その夜」に含める
+    endMs: startJst - JST_OFFSET_MS + 16 * 3600_000,
   };
+}
+
+/**
+ * そのパスが「いつの話か」を日本語にする。
+ *
+ * ISSの可視期間は夕方と早朝が入れ替わる。
+ * 朝10時に出す予告が翌朝5時のパスを指すことは普通にあるので、
+ * 「今夜」と言い切ると嘘になる。
+ */
+export function describeOccasionJa(
+  passTimeMs: number,
+  nowMs: number,
+  timeOfDay: TimeOfDayKey,
+): string {
+  const sameDay = jstDateKey(passTimeMs) === jstDateKey(nowMs);
+  if (timeOfDay === 'dawn' || timeOfDay === 'midnight') {
+    return sameDay ? '今朝' : '明日の早朝';
+  }
+  return sameDay ? '今夜' : '明日の夜';
 }
 
 /** 経過時間を「3時間前」のような日本語にする。データ鮮度表示に使う */

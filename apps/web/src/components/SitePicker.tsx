@@ -41,8 +41,8 @@ function Chip({
       aria-pressed={active}
       className={`rounded-full border transition-colors ${
         size === 'sm'
-          ? 'px-3 py-1.5 text-[12px]'
-          : 'px-3.5 py-2 text-[12.5px]'
+          ? 'px-3 py-1.5 text-[12.5px]'
+          : 'px-3.5 py-2 text-[13px]'
       } ${
         active
           ? 'border-[var(--color-accent)] bg-[rgba(255,196,107,0.13)] font-semibold text-[var(--color-accent)]'
@@ -70,7 +70,7 @@ export function SitePicker({ current, onSelect }: SitePickerProps) {
     <div className="space-y-4">
       {/* ── 地方 ── */}
       <div>
-        <p className="mb-2 text-[11px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
+        <p className="mb-2 text-[12px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
           地方
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -92,7 +92,7 @@ export function SitePicker({ current, onSelect }: SitePickerProps) {
 
       {/* ── 都道府県 ── */}
       <div>
-        <p className="mb-2 text-[11px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
+        <p className="mb-2 text-[12px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
           都道府県
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -110,7 +110,7 @@ export function SitePicker({ current, onSelect }: SitePickerProps) {
 
       {/* ── 市区町村 ── */}
       <div>
-        <p className="mb-2 text-[11px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
+        <p className="mb-2 text-[12px] font-semibold tracking-wide text-[var(--color-ink-faint)]">
           {activePrefecture}の市区町村
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -124,7 +124,7 @@ export function SitePicker({ current, onSelect }: SitePickerProps) {
           ))}
         </div>
         {cities.length <= 1 && (
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--color-ink-faint)]">
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
             この県は県庁所在地のみ登録しています。
             近隣の市でも ISS の見え方はほとんど変わりません。
           </p>

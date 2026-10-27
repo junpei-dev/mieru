@@ -58,17 +58,17 @@ export function Settings() {
         <h2 className="text-[14px] font-bold">観測地点</h2>
 
         <div className="mt-3 rounded-xl border border-[rgba(255,196,107,0.24)] bg-[rgba(255,196,107,0.06)] p-4">
-          <p className="text-[10.5px] tracking-wide text-[var(--color-ink-faint)]">
+          <p className="text-[11.5px] tracking-wide text-[var(--color-ink-faint)]">
             現在の設定
           </p>
           <p className="mt-0.5 text-[19px] font-bold text-[var(--color-accent)]">
             {site.name}
           </p>
-          <p className="tnum mt-1 text-[10.5px] text-[var(--color-ink-faint)]">
+          <p className="tnum mt-1 text-[11.5px] text-[var(--color-ink-faint)]">
             北緯 {site.latitudeDeg.toFixed(3)}° / 東経{' '}
             {site.longitudeDeg.toFixed(3)}° / 標高 {site.altitudeM}m
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--color-ink-faint)]">
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
             {site.pregenerated
               ? 'この地点はサーバで予報を事前計算しています。LINE通知の対象です。'
               : 'この地点の予報は端末内で計算します。LINE通知は最寄りの対応地点の軌道を使います。'}
@@ -76,7 +76,7 @@ export function Settings() {
           </p>
         </div>
 
-        <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--color-ink-faint)]">
+        <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
           選んだ地点は端末内にのみ保存されます。サーバには送信されません。
         </p>
 
@@ -84,12 +84,12 @@ export function Settings() {
           type="button"
           onClick={useCurrentLocation}
           disabled={locating}
-          className="tap mt-3 w-full rounded-xl border border-[var(--color-edge-strong)] py-2.5 text-[13px] font-medium disabled:opacity-50"
+          className="tap mt-3 w-full rounded-xl border border-[var(--color-edge-strong)] py-2.5 text-[13.5px] font-medium disabled:opacity-50"
         >
           {locating ? '取得中…' : '現在地から最も近い地点を選ぶ'}
         </button>
         {locateError && (
-          <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--color-warn)]">
+          <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--color-warn)]">
             {locateError}
           </p>
         )}
@@ -104,7 +104,7 @@ export function Settings() {
       {/* ── しきい値 ── */}
       <section className="card p-5">
         <h2 className="text-[14px] font-bold">通知のしきい値</h2>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--color-ink-faint)]">
+        <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
           この点数以上のパスを「好条件」として強調し、LINEで通知します。
           <br />
           低くしすぎると通知が増え、外れたときに信用を失います。
@@ -122,7 +122,7 @@ export function Settings() {
               }`}
             >
               <span
-                className={`block text-[13px] font-semibold ${
+                className={`block text-[13.5px] font-semibold ${
                   option.value === threshold
                     ? 'text-[var(--color-accent)]'
                     : 'text-[var(--color-ink-sub)]'
@@ -130,10 +130,10 @@ export function Settings() {
               >
                 {option.label}
               </span>
-              <span className="tnum block text-[10px] text-[var(--color-ink-faint)]">
+              <span className="tnum block text-[11px] text-[var(--color-ink-faint)]">
                 {option.value}点以上
               </span>
-              <span className="mt-0.5 block text-[9.5px] text-[var(--color-ink-faint)]">
+              <span className="mt-0.5 block text-[11px] text-[var(--color-ink-faint)]">
                 {option.note}
               </span>
             </button>
@@ -144,13 +144,13 @@ export function Settings() {
       {/* ── LINE ── */}
       <section className="card p-5">
         <h2 className="text-[14px] font-bold">LINE通知</h2>
-        <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--color-ink-faint)]">
+        <p className="mt-1 text-[12.5px] leading-relaxed text-[var(--color-ink-faint)]">
           LINE公式アカウントを友だち追加すると、条件が揃った日の朝と、
           通過の30分前に通知が届きます。
           友だち追加後、トークに市区町村名（例:「宮崎市」）を送ると
           その地点で通知されます。
         </p>
-        <p className="mt-3 rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-3 text-[11.5px] text-[var(--color-ink-faint)]">
+        <p className="mt-3 rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-3 text-[12.5px] text-[var(--color-ink-faint)]">
           準備中です。LINE公式アカウントの設定が完了したら、
           ここに友だち追加のリンクが表示されます。
         </p>
@@ -159,7 +159,7 @@ export function Settings() {
       {/* ── このアプリについて ── */}
       <section className="card p-5">
         <h2 className="text-[14px] font-bold">このアプリについて</h2>
-        <dl className="mt-3 space-y-2.5 text-[11.5px] leading-relaxed text-[var(--color-ink-sub)]">
+        <dl className="mt-3 space-y-2.5 text-[12.5px] leading-relaxed text-[var(--color-ink-sub)]">
           <div>
             <dt className="font-semibold text-[var(--color-ink)]">
               軌道データ

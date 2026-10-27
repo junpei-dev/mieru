@@ -32,7 +32,7 @@ export function ScoreBar({ score }: { score: PassScore }) {
         />
       </div>
       <span
-        className="tnum w-9 text-right text-[12px] font-semibold"
+        className="tnum w-9 text-right text-[12.5px] font-semibold"
         style={{ color }}
       >
         {score.total}
@@ -56,7 +56,7 @@ export function ScoreBreakdown({ score }: { score: PassScore }) {
         return (
           <div key={key} className="flex items-center gap-2">
             <dt
-              className={`w-16 shrink-0 text-[11.5px] ${
+              className={`w-16 shrink-0 text-[12.5px] ${
                 isLimiting
                   ? 'font-semibold text-[var(--color-warn)]'
                   : 'text-[var(--color-ink-faint)]'
@@ -76,7 +76,7 @@ export function ScoreBreakdown({ score }: { score: PassScore }) {
                   }}
                 />
               </div>
-              <span className="tnum w-7 text-right text-[10.5px] text-[var(--color-ink-faint)]">
+              <span className="tnum w-7 text-right text-[11.5px] text-[var(--color-ink-faint)]">
                 {unknown ? '—' : Math.round(value * 100)}
               </span>
             </dd>

@@ -30,7 +30,7 @@ export function Forecast() {
               <span className="text-[14px] font-bold">
                 {formatJstDate(first.pass.culmination.timeMs)}
               </span>
-              <span className="text-[11px] text-[var(--color-ink-faint)]">
+              <span className="text-[12px] text-[var(--color-ink-faint)]">
                 {group.passes.length}回
               </span>
             </h2>

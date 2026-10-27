@@ -132,20 +132,43 @@ export interface WeatherSnapshot {
   precipitationProbabilityPct: number | null;
 }
 
-/** スコアの構成要素 */
+/**
+ * スコアの構成要素。
+ *
+ * ここにあるのは「実際に目で見えるかどうか」を決める物理的な因子だけ。
+ * 時間帯の都合（早朝か夕方か）は人の事情であって見え方ではないので含めない。
+ * 混ぜると「−4等・仰角72°・快晴の完璧なパス」が早朝というだけで
+ * 低得点になり、通知されなくなる（実際にそうなっていた）。
+ */
 export type ScoreFactorKey =
   | 'cloud'
   | 'elevation'
   | 'magnitude'
   | 'darkness'
-  | 'hour'
   | 'duration';
+
+/** 観測時刻の区分 */
+export type TimeOfDayKey =
+  | 'evening'
+  | 'night'
+  | 'dawn'
+  | 'midnight'
+  | 'daytime';
 
 export type Verdict = 'excellent' | 'good' | 'marginal' | 'poor';
 
 export interface PassScore {
-  /** 0〜100 の総合スコア */
+  /**
+   * 0〜100 の「見えやすさ」スコア。
+   * 物理的に目で見えるかどうかだけを表し、時間帯の都合は含まない。
+   */
   total: number;
+  /**
+   * 時間帯の都合（0〜1）。スコアとは掛け算せず、独立して持つ。
+   * 通知するかどうかの判断では、total と合わせて別々に見る。
+   */
+  convenience: number;
+  timeOfDay: TimeOfDayKey;
   /** 各因子の値（0〜1）。乗算して total を作る */
   factors: Record<ScoreFactorKey, number>;
   /** 最も足を引っ張っている因子。「見えない理由」の表示に使う */
